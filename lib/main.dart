@@ -92,7 +92,9 @@ class _MainScreenState extends State<MainScreen> {
           ),
           
           // Groups Tab
-          const GroupManagementPage(),
+          GroupManagementPage(
+            onScroll: _handleScroll,
+          ),
           
           // Lights Tab (Coming Soon)
           _buildComingSoonPage('Lights'),

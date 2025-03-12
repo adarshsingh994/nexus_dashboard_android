@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'; // Import for ScrollDirection
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nanoid/nanoid.dart';
 import 'package:nexus_dashboard/domain/entities/group_entity.dart';
@@ -7,9 +8,15 @@ import 'package:nexus_dashboard/presentation/bloc/group_management/group_managem
 import 'package:nexus_dashboard/presentation/bloc/theme/theme_bloc.dart';
 import 'package:nexus_dashboard/presentation/pages/group_details_page.dart';
 import 'package:nexus_dashboard/presentation/widgets/common_app_bar.dart';
+import 'package:nexus_dashboard/presentation/widgets/theme_switcher.dart';
 
 class GroupManagementPage extends StatefulWidget {
-  const GroupManagementPage({super.key});
+  final Function(bool)? onScroll;
+
+  const GroupManagementPage({
+    super.key,
+    this.onScroll,
+  });
 
   @override
   State<GroupManagementPage> createState() => _GroupManagementPageState();
@@ -20,32 +27,48 @@ class _GroupManagementPageState extends State<GroupManagementPage> {
   final _idController = TextEditingController();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _isScrollingDown = false;
 
   @override
   void initState() {
     super.initState();
     // Load groups when the page is initialized
     context.read<GroupManagementBloc>().add(LoadGroups());
+    
+    // Add scroll listener
+    _scrollController.addListener(_scrollListener);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
     _idController.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
+  
+  void _scrollListener() {
+    if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
+      if (!_isScrollingDown) {
+        _isScrollingDown = true;
+        widget.onScroll?.call(true);
+      }
+    }
+    
+    if (_scrollController.position.userScrollDirection == ScrollDirection.forward) {
+      if (_isScrollingDown) {
+        _isScrollingDown = false;
+        widget.onScroll?.call(false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CommonAppBar(
-        title: 'Group Management',
-        onColorChanged: (color) {
-          context.read<ThemeBloc>().add(ChangeSeedColor(color));
-        },
-        actions: [],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToGroupDetails(null), // Pass null for creation mode
         tooltip: 'Add Group',
@@ -53,34 +76,71 @@ class _GroupManagementPageState extends State<GroupManagementPage> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
-      body: BlocConsumer<GroupManagementBloc, GroupManagementState>(
-        listener: (context, state) {
-          if (state is GroupManagementOperationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else if (state is GroupManagementOperationError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+      body: NestedScrollView(
+        controller: _scrollController,
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              title: const Text('Group Management'),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.palette_outlined),
+                  tooltip: 'Change Theme Color',
+                  onPressed: () {
+                    final themeBloc = context.read<ThemeBloc>();
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) => ThemeSwitcher(
+                        currentColor: themeBloc.state.seedColor,
+                        onColorSelected: (color) {
+                          context.read<ThemeBloc>().add(ChangeSeedColor(color));
+                          Navigator.pop(context);
+                        },
+                      ),
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ];
         },
-        builder: (context, state) {
-          if (state is GroupManagementLoading || state is GroupManagementOperationLoading) {
+        body: BlocConsumer<GroupManagementBloc, GroupManagementState>(
+          listener: (context, state) {
+            if (state is GroupManagementOperationSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else if (state is GroupManagementOperationError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state is GroupManagementLoading || state is GroupManagementOperationLoading) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is GroupManagementError) {
+              return _buildErrorView(state.message);
+            } else if (state is GroupManagementLoaded) {
+              return _buildGroupsList(state.groups);
+            }
             return const Center(child: CircularProgressIndicator());
-          } else if (state is GroupManagementError) {
-            return _buildErrorView(state.message);
-          } else if (state is GroupManagementLoaded) {
-            return _buildGroupsList(state.groups);
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
+          },
+        ),
       ),
     );
   }
@@ -144,6 +204,8 @@ class _GroupManagementPageState extends State<GroupManagementPage> {
     }
 
     return ListView.builder(
+      // Remove the controller as it's now handled by the NestedScrollView
+      physics: const AlwaysScrollableScrollPhysics(), // Allow scrolling within NestedScrollView
       itemCount: groups.length,
       padding: const EdgeInsets.all(8),
       itemBuilder: (context, index) {
