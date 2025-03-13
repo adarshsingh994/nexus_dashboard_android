@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:nexus_dashboard/domain/entities/group_entity.dart';
@@ -110,53 +111,97 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
   
   void _showColorPicker() {
     final theme = Theme.of(context);
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenSize = MediaQuery.of(context).size;
+    final maxDialogWidth = isLandscape ? screenSize.width * 0.7 : screenSize.width * 0.9;
+    final maxDialogHeight = isLandscape ? screenSize.height * 0.9 : screenSize.height * 0.7;
     
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Pick a color',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isLandscape ? 24 : 16,
+            vertical: isLandscape ? 16 : 24,
           ),
-          icon: Icon(
-            Icons.palette_outlined,
-            color: theme.colorScheme.primary,
-            size: 28,
-          ),
-          content: SingleChildScrollView(
-            child: _buildHueOnlyColorPicker(
-              _currentColor,
-              (Color color) {
-                setState(() {
-                  _currentColor = color;
-                });
-              },
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            FilledButton(
-              child: const Text('Apply'),
-              onPressed: () {
-                _setColor(_currentColor);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
           backgroundColor: theme.colorScheme.surface,
           surfaceTintColor: Colors.transparent,
           elevation: 6,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxDialogWidth,
+              maxHeight: maxDialogHeight,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.palette_outlined,
+                        color: theme.colorScheme.primary,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Pick a color',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  
+                  // Content
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: _buildHueOnlyColorPicker(
+                        _currentColor,
+                        (Color color) {
+                          setState(() {
+                            _currentColor = color;
+                          });
+                        },
+                        isLandscape: isLandscape,
+                      ),
+                    ),
+                  ),
+                  
+                  // Actions
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          child: const Text('Cancel'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          child: const Text('Apply'),
+                          onPressed: () {
+                            _setColor(_currentColor);
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -164,199 +209,415 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
   
   void _showWhiteControls() {
     final theme = Theme.of(context);
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenSize = MediaQuery.of(context).size;
+    final maxDialogWidth = isLandscape ? screenSize.width * 0.8 : screenSize.width * 0.9;
+    final maxDialogHeight = isLandscape ? screenSize.height * 0.9 : screenSize.height * 0.7;
     
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text(
-                'White Light Controls',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            return Dialog(
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: isLandscape ? 24 : 16,
+                vertical: isLandscape ? 16 : 24,
               ),
-              icon: Icon(
-                Icons.wb_sunny_outlined,
-                color: theme.colorScheme.primary,
-                size: 28,
-              ),
-              content: Container(
-                width: double.maxFinite,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.wb_sunny,
-                          color: Colors.amber,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Warm White',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '0',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                              Text(
-                                '${_warmWhiteIntensity.toInt()}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                              Text(
-                                '255',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                          Slider(
-                            value: _warmWhiteIntensity.toDouble(),
-                            min: 0,
-                            max: 255,
-                            divisions: 255,
-                            label: _warmWhiteIntensity.toString(),
-                            activeColor: theme.colorScheme.primary,
-                            inactiveColor: theme.colorScheme.primary.withOpacity(0.3),
-                            onChanged: (double value) {
-                              setState(() {
-                                _warmWhiteIntensity = value.toInt();
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.wb_sunny,
-                          color: Colors.lightBlueAccent,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Cold White',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '0',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                              Text(
-                                '${_coldWhiteIntensity.toInt()}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.secondary,
-                                ),
-                              ),
-                              Text(
-                                '255',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                          Slider(
-                            value: _coldWhiteIntensity.toDouble(),
-                            min: 0,
-                            max: 255,
-                            divisions: 255,
-                            label: _coldWhiteIntensity.toString(),
-                            activeColor: theme.colorScheme.secondary,
-                            inactiveColor: theme.colorScheme.secondary.withOpacity(0.3),
-                            onChanged: (double value) {
-                              setState(() {
-                                _coldWhiteIntensity = value.toInt();
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Cancel'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                FilledButton.icon(
-                  icon: const Icon(Icons.wb_sunny_outlined),
-                  label: const Text('Apply Warm'),
-                  onPressed: () {
-                    _setWarmWhite(_warmWhiteIntensity);
-                    Navigator.of(context).pop();
-                  },
-                ),
-                FilledButton.icon(
-                  icon: const Icon(Icons.wb_sunny_outlined),
-                  label: const Text('Apply Cold'),
-                  onPressed: () {
-                    _setColdWhite(_coldWhiteIntensity);
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
               ),
               backgroundColor: theme.colorScheme.surface,
               surfaceTintColor: Colors.transparent,
               elevation: 6,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: maxDialogWidth,
+                  maxHeight: maxDialogHeight,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.wb_sunny_outlined,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'White Light Controls',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      
+                      // Content
+                      Flexible(
+                        child: SingleChildScrollView(
+                          child: isLandscape
+                              ? _buildLandscapeWhiteControls(setState, theme)
+                              : _buildPortraitWhiteControls(setState, theme),
+                        ),
+                      ),
+                      
+                      // Actions
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            TextButton(
+                              child: const Text('Cancel'),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            FilledButton.icon(
+                              icon: const Icon(Icons.wb_sunny_outlined, size: 18),
+                              label: const Text('Apply Warm'),
+                              onPressed: () {
+                                _setWarmWhite(_warmWhiteIntensity);
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            FilledButton.icon(
+                              icon: const Icon(Icons.wb_sunny_outlined, size: 18),
+                              label: const Text('Apply Cold'),
+                              onPressed: () {
+                                _setColdWhite(_coldWhiteIntensity);
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
           }
         );
       },
     );
   }
+  
+  // Portrait layout for white controls
+  Widget _buildPortraitWhiteControls(StateSetter setState, ThemeData theme) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Warm White Section
+        Row(
+          children: [
+            const Icon(
+              Icons.wb_sunny,
+              color: Colors.amber,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Warm White',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '0',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  Text(
+                    '${_warmWhiteIntensity.toInt()}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  Text(
+                    '255',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              Slider(
+                value: _warmWhiteIntensity.toDouble(),
+                min: 0,
+                max: 255,
+                divisions: 255,
+                label: _warmWhiteIntensity.toString(),
+                activeColor: theme.colorScheme.primary,
+                inactiveColor: theme.colorScheme.primary.withOpacity(0.3),
+                onChanged: (double value) {
+                  setState(() {
+                    _warmWhiteIntensity = value.toInt();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Cold White Section
+        Row(
+          children: [
+            const Icon(
+              Icons.wb_sunny,
+              color: Colors.lightBlueAccent,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Cold White',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '0',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  Text(
+                    '${_coldWhiteIntensity.toInt()}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                  Text(
+                    '255',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              Slider(
+                value: _coldWhiteIntensity.toDouble(),
+                min: 0,
+                max: 255,
+                divisions: 255,
+                label: _coldWhiteIntensity.toString(),
+                activeColor: theme.colorScheme.secondary,
+                inactiveColor: theme.colorScheme.secondary.withOpacity(0.3),
+                onChanged: (double value) {
+                  setState(() {
+                    _coldWhiteIntensity = value.toInt();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  // Landscape layout for white controls
+  Widget _buildLandscapeWhiteControls(StateSetter setState, ThemeData theme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Warm White Section
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.wb_sunny,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Warm White',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '0',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Text(
+                          '${_warmWhiteIntensity.toInt()}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        Text(
+                          '255',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _warmWhiteIntensity.toDouble(),
+                      min: 0,
+                      max: 255,
+                      divisions: 255,
+                      label: _warmWhiteIntensity.toString(),
+                      activeColor: theme.colorScheme.primary,
+                      inactiveColor: theme.colorScheme.primary.withOpacity(0.3),
+                      onChanged: (double value) {
+                        setState(() {
+                          _warmWhiteIntensity = value.toInt();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(width: 16),
+        
+        // Cold White Section
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.wb_sunny,
+                    color: Colors.lightBlueAccent,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Cold White',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '0',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Text(
+                          '${_coldWhiteIntensity.toInt()}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.secondary,
+                          ),
+                        ),
+                        Text(
+                          '255',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _coldWhiteIntensity.toDouble(),
+                      min: 0,
+                      max: 255,
+                      divisions: 255,
+                      label: _coldWhiteIntensity.toString(),
+                      activeColor: theme.colorScheme.secondary,
+                      inactiveColor: theme.colorScheme.secondary.withOpacity(0.3),
+                      onChanged: (double value) {
+                        setState(() {
+                          _coldWhiteIntensity = value.toInt();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   // Custom color picker that only shows the hue ring with maximum brightness
-  Widget _buildHueOnlyColorPicker(Color initialColor, ValueChanged<Color> onColorChanged) {
+  Widget _buildHueOnlyColorPicker(
+    Color initialColor,
+    ValueChanged<Color> onColorChanged,
+    {bool isLandscape = false}
+  ) {
     final theme = Theme.of(context);
+    final screenSize = MediaQuery.of(context).size;
     
     // Convert initial color to HSV and ensure maximum brightness
     HSVColor hsvColor = HSVColor.fromColor(initialColor);
@@ -368,61 +629,143 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
       1.0, // Maximum brightness (100%)
     ).toColor();
     
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Display the current color
-        Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            color: safeInitialColor,
-            shape: BoxShape.circle,
-            border: Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
-            boxShadow: [
-              BoxShadow(
-                color: theme.shadowColor.withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+    // Calculate appropriate picker size based on screen dimensions
+    final pickerSize = isLandscape
+        ? math.min(screenSize.height * 0.5, screenSize.width * 0.3)
+        : math.min(screenSize.width * 0.7, 280.0);
+    
+    // For landscape, use a row layout; for portrait, use a column layout
+    if (isLandscape) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Left side: Color preview
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Display the current color
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: safeInitialColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.shadowColor.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 120,
+                child: Text(
+                  'Select a hue (maximum brightness)',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 24),
-        
-        // Use HueRingPicker which only shows the hue selection
-        HueRingPicker(
-          pickerColor: safeInitialColor,
-          onColorChanged: (Color color) {
-            // Extract just the hue from the selected color
-            final hue = HSVColor.fromColor(color).hue;
-            
-            // Create a new color with this hue but maximum saturation and brightness
-            final newColor = HSVColor.fromAHSV(
-              1.0, // Alpha
-              hue,
-              1.0, // Maximum saturation
-              1.0, // Maximum brightness (100%)
-            ).toColor();
-            
-            // Call the original callback with the adjusted color
-            onColorChanged(newColor);
-          },
-          displayThumbColor: true,
-          portraitOnly: true,
-        ),
-        
-        const SizedBox(height: 16),
-        Text(
-          'Select a hue for your LED lights (always at maximum brightness)',
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontStyle: FontStyle.italic,
-            color: theme.colorScheme.onSurfaceVariant,
+          const SizedBox(width: 16),
+          
+          // Right side: Hue picker
+          Flexible(
+            child: SizedBox(
+              height: pickerSize,
+              child: HueRingPicker(
+                pickerColor: safeInitialColor,
+                onColorChanged: (Color color) {
+                  // Extract just the hue from the selected color
+                  final hue = HSVColor.fromColor(color).hue;
+                  
+                  // Create a new color with this hue but maximum saturation and brightness
+                  final newColor = HSVColor.fromAHSV(
+                    1.0, // Alpha
+                    hue,
+                    1.0, // Maximum saturation
+                    1.0, // Maximum brightness (100%)
+                  ).toColor();
+                  
+                  // Call the original callback with the adjusted color
+                  onColorChanged(newColor);
+                },
+                displayThumbColor: true,
+                portraitOnly: false,
+              ),
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
+        ],
+      );
+    } else {
+      // Portrait layout (original column layout with size constraints)
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Display the current color
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: safeInitialColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.shadowColor.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Use HueRingPicker which only shows the hue selection
+          SizedBox(
+            height: pickerSize,
+            child: HueRingPicker(
+              pickerColor: safeInitialColor,
+              onColorChanged: (Color color) {
+                // Extract just the hue from the selected color
+                final hue = HSVColor.fromColor(color).hue;
+                
+                // Create a new color with this hue but maximum saturation and brightness
+                final newColor = HSVColor.fromAHSV(
+                  1.0, // Alpha
+                  hue,
+                  1.0, // Maximum saturation
+                  1.0, // Maximum brightness (100%)
+                ).toColor();
+                
+                // Call the original callback with the adjusted color
+                onColorChanged(newColor);
+              },
+              displayThumbColor: true,
+              portraitOnly: false,
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          Text(
+            'Select a hue for your LED lights (always at maximum brightness)',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      );
+    }
   }
 
   void _setColor(Color color) {
