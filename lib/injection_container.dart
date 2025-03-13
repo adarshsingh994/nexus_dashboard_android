@@ -32,6 +32,9 @@ Future<void> init() async {
       getGroups: sl(),
       turnOnGroup: sl(),
       turnOffGroup: sl(),
+      setColor: sl(),
+      setWarmWhite: sl(),
+      setColdWhite: sl(),
     ),
   );
   

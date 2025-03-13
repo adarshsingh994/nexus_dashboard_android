@@ -30,3 +30,42 @@ class UpdateGroupState extends HomeEvent {
   @override
   List<Object> get props => [groupId, newState];
 }
+
+class SetGroupColorEvent extends HomeEvent {
+  final String groupId;
+  final List<int> color;
+
+  const SetGroupColorEvent({
+    required this.groupId,
+    required this.color,
+  });
+
+  @override
+  List<Object> get props => [groupId, color];
+}
+
+class SetWarmWhiteEvent extends HomeEvent {
+  final String groupId;
+  final int intensity;
+
+  const SetWarmWhiteEvent({
+    required this.groupId,
+    required this.intensity,
+  });
+
+  @override
+  List<Object> get props => [groupId, intensity];
+}
+
+class SetColdWhiteEvent extends HomeEvent {
+  final String groupId;
+  final int intensity;
+
+  const SetColdWhiteEvent({
+    required this.groupId,
+    required this.intensity,
+  });
+
+  @override
+  List<Object> get props => [groupId, intensity];
+}

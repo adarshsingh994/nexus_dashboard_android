@@ -3,6 +3,8 @@ import 'package:equatable/equatable.dart';
 import 'package:nexus_dashboard/domain/entities/group_entity.dart';
 import 'package:nexus_dashboard/domain/entities/group_state_entity.dart';
 import 'package:nexus_dashboard/domain/usecases/group/get_groups.dart';
+import 'package:nexus_dashboard/domain/usecases/group/set_group_color.dart';
+import 'package:nexus_dashboard/domain/usecases/group/set_white_intensity.dart';
 import 'package:nexus_dashboard/domain/usecases/group/toggle_group_power.dart';
 
 part 'home_event.dart';
@@ -12,15 +14,24 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final GetGroups getGroups;
   final TurnOnGroup turnOnGroup;
   final TurnOffGroup turnOffGroup;
+  final SetGroupColor setColor;
+  final SetWarmWhite setWarmWhite;
+  final SetColdWhite setColdWhite;
 
   HomeBloc({
     required this.getGroups,
     required this.turnOnGroup,
     required this.turnOffGroup,
+    required this.setColor,
+    required this.setWarmWhite,
+    required this.setColdWhite,
   }) : super(HomeInitial()) {
     on<LoadGroups>(_onLoadGroups);
     on<ToggleGroupPower>(_onToggleGroupPower);
     on<UpdateGroupState>(_onUpdateGroupState);
+    on<SetGroupColorEvent>(_onSetGroupColor);
+    on<SetWarmWhiteEvent>(_onSetWarmWhite);
+    on<SetColdWhiteEvent>(_onSetColdWhite);
   }
 
   Future<void> _onLoadGroups(LoadGroups event, Emitter<HomeState> emit) async {
@@ -86,5 +97,98 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }).toList();
     
     emit(HomeLoaded(groups: updatedGroups));
+    
+    // Check if RGB values have changed and make API call if needed
+    if (event.newState.rgb != null) {
+      add(SetGroupColorEvent(
+        groupId: event.groupId,
+        color: event.newState.rgb!,
+      ));
+    }
+    
+    // Check if warm white intensity has changed and make API call if needed
+    if (event.newState.warmWhiteIntensity != null) {
+      add(SetWarmWhiteEvent(
+        groupId: event.groupId,
+        intensity: event.newState.warmWhiteIntensity!,
+      ));
+    }
+    
+    // Check if cold white intensity has changed and make API call if needed
+    if (event.newState.coldWhiteIntensity != null) {
+      add(SetColdWhiteEvent(
+        groupId: event.groupId,
+        intensity: event.newState.coldWhiteIntensity!,
+      ));
+    }
+  }
+  
+  Future<void> _onSetGroupColor(SetGroupColorEvent event, Emitter<HomeState> emit) async {
+    if (state is! HomeLoaded) return;
+    
+    final currentState = state as HomeLoaded;
+    
+    // Make the API call
+    final result = await setColor(
+      SetGroupColorParams(groupId: event.groupId, color: event.color),
+    );
+    
+    result.fold(
+      (failure) {
+        // Show error message
+        emit(HomeOperationError(message: failure.message));
+        // Emit the current state again to maintain UI consistency
+        emit(currentState);
+      },
+      (success) {
+        // Success, no need to update UI as it's already updated optimistically
+      },
+    );
+  }
+  
+  Future<void> _onSetWarmWhite(SetWarmWhiteEvent event, Emitter<HomeState> emit) async {
+    if (state is! HomeLoaded) return;
+    
+    final currentState = state as HomeLoaded;
+    
+    // Make the API call
+    final result = await setWarmWhite(
+      SetWarmWhiteParams(groupId: event.groupId, intensity: event.intensity),
+    );
+    
+    result.fold(
+      (failure) {
+        // Show error message
+        emit(HomeOperationError(message: failure.message));
+        // Emit the current state again to maintain UI consistency
+        emit(currentState);
+      },
+      (success) {
+        // Success, no need to update UI as it's already updated optimistically
+      },
+    );
+  }
+  
+  Future<void> _onSetColdWhite(SetColdWhiteEvent event, Emitter<HomeState> emit) async {
+    if (state is! HomeLoaded) return;
+    
+    final currentState = state as HomeLoaded;
+    
+    // Make the API call
+    final result = await setColdWhite(
+      SetColdWhiteParams(groupId: event.groupId, intensity: event.intensity),
+    );
+    
+    result.fold(
+      (failure) {
+        // Show error message
+        emit(HomeOperationError(message: failure.message));
+        // Emit the current state again to maintain UI consistency
+        emit(currentState);
+      },
+      (success) {
+        // Success, no need to update UI as it's already updated optimistically
+      },
+    );
   }
 }

@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:nexus_dashboard/domain/entities/group_entity.dart';
 import 'package:nexus_dashboard/domain/entities/group_state_entity.dart';
-import 'package:nexus_dashboard/presentation/bloc/group/group_bloc.dart';
 
 class GroupCard extends StatefulWidget {
   final GroupEntity group;
@@ -447,53 +445,8 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
       _isLoading = false;
     });
     
-    // Notify parent
+    // Notify parent - this will trigger the API call through HomeBloc
     widget.onStateChanged(_groupState);
-    
-    // Try to get the GroupBloc and update it if available
-    try {
-      final groupBloc = BlocProvider.of<GroupBloc>(context, listen: false);
-      groupBloc.add(
-        SetColorEvent(
-          groupId: widget.group.id,
-          color: rgb,
-        ),
-      );
-    } catch (e) {
-      print('Error accessing GroupBloc: $e');
-    }
-    
-    // Commenting out the stream subscription approach for now
-    /*
-    late final StreamSubscription subscription;
-    subscription = groupBloc.stream.listen((state) {
-      if (state is GroupLoaded) {
-        // API call succeeded, update local state
-        setState(() {
-          _currentColor = selectedColor;
-          _groupState = _groupState.copyWith(
-            isOn: true,
-            rgb: rgb,
-          );
-          _isLoading = false;
-        });
-        
-        // Notify parent
-        widget.onStateChanged(_groupState);
-        
-        // Cancel subscription after handling the state
-        subscription.cancel();
-      } else if (state is GroupOperationError) {
-        // API call failed, show error and reset loading state
-        setState(() {
-          _isLoading = false;
-        });
-        
-        // Cancel subscription after handling the error
-        subscription.cancel();
-      }
-    });
-    */
   }
 
   void _setWarmWhite(int intensity) {
@@ -514,21 +467,8 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
       _isLoading = false;
     });
     
-    // Notify parent
+    // Notify parent - this will trigger the API call through HomeBloc
     widget.onStateChanged(_groupState);
-    
-    // Try to get the GroupBloc and update it if available
-    try {
-      final groupBloc = BlocProvider.of<GroupBloc>(context, listen: false);
-      groupBloc.add(
-        SetWarmWhiteEvent(
-          groupId: widget.group.id,
-          intensity: intensity,
-        ),
-      );
-    } catch (e) {
-      print('Error accessing GroupBloc: $e');
-    }
   }
 
   void _setColdWhite(int intensity) {
@@ -549,21 +489,8 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
       _isLoading = false;
     });
     
-    // Notify parent
+    // Notify parent - this will trigger the API call through HomeBloc
     widget.onStateChanged(_groupState);
-    
-    // Try to get the GroupBloc and update it if available
-    try {
-      final groupBloc = BlocProvider.of<GroupBloc>(context, listen: false);
-      groupBloc.add(
-        SetColdWhiteEvent(
-          groupId: widget.group.id,
-          intensity: intensity,
-        ),
-      );
-    } catch (e) {
-      print('Error accessing GroupBloc: $e');
-    }
   }
 
   @override
