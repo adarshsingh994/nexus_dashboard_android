@@ -40,17 +40,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     final currentState = state as HomeLoaded;
     final group = event.group;
     
-    // Optimistically update the UI
-    final updatedGroups = currentState.groups.map((g) {
-      if (g.id == group.id) {
-        final newState = g.state?.copyWith(isOn: !g.state!.isOn) ?? 
-            (g.state?.isOn == true ? g.state?.copyWith(isOn: false) : g.state?.copyWith(isOn: true));
-        return g.copyWith(state: newState);
-      }
-      return g;
-    }).toList();
-    
-    emit(HomeLoaded(groups: updatedGroups));
+    // Don't optimistically update the UI anymore, just show loading state
+    // The GroupCard will handle showing the loading indicator
     
     // Make the API call
     final result = group.state?.isOn == true
@@ -59,12 +50,25 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     
     result.fold(
       (failure) {
-        // Revert to the original state on error
-        emit(HomeLoaded(groups: currentState.groups));
+        // Show error message
         emit(HomeOperationError(message: failure.message));
       },
       (success) {
-        // Success, keep the updated state
+        // Check for overall_success parameter
+        bool overallSuccess = success['overall_success'] == true;
+        
+        // Update the UI based on the API response
+        final updatedGroups = currentState.groups.map((g) {
+          if (g.id == group.id && overallSuccess) {
+            // Only update the state if overall_success is true
+            final newState = g.state?.copyWith(isOn: !g.state!.isOn) ??
+                (g.state?.isOn == true ? g.state?.copyWith(isOn: false) : g.state?.copyWith(isOn: true));
+            return g.copyWith(state: newState);
+          }
+          return g;
+        }).toList();
+        
+        emit(HomeLoaded(groups: updatedGroups));
       },
     );
   }

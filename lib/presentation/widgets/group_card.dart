@@ -83,6 +83,10 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
     // If the group state has changed, update our local state
     if (widget.group.state != oldWidget.group.state) {
       _initializeGroupState();
+      // Reset loading state when we receive updated props
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
   
@@ -96,6 +100,11 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
     // Play animation
     _animationController.forward().then((_) {
       _animationController.reverse();
+    });
+    
+    // Show loading state
+    setState(() {
+      _isLoading = true;
     });
     
     widget.onTogglePower();
